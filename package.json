@@ -1,12 +1,14 @@
 {
-  "name": "module-simple-todos-react",
-  "version": "1.0.0",
+  "name": "module-simple-todos-react-graphql",
+  "version": "0.1.0",
   "description": "todos",
   "scripts": {
     "lint": "eslint --ext js,jsx ."
   },
   "dependencies": {
     "classnames": "^2.2.3",
+    "express-graphql": "^0.4.9",
+    "graphql": "^0.4.18",
     "react": "^0.14.7",
     "react-addons-css-transition-group": "^0.14.7",
     "react-addons-pure-render-mixin": "^0.14.7",
@@ -14,11 +16,13 @@
     "react-komposer": "^1.3.0",
     "react-router": "^2.0.0"
   },
-  "author": "Evan You",
+  "author": "Jonas Helfer",
   "license": "MIT",
   "devDependencies": {
     "babel-eslint": "^4.1.8",
     "eslint": "^1.10.3",
-    "eslint-plugin-react": "^3.16.1"
+    "eslint-plugin-react": "^3.16.1",
+    "express": "^4.13.4",
+    "http-proxy-middleware": "^0.10.0"
   }
 }
