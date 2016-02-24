@@ -11,24 +11,52 @@ import _ from 'lodash';
 
 let users = [{id: '1', username: 'alice'}];
 let num_users = users.length;
+let lists = [{id: '1', name: 'list 1', incompleteCount: 1, user: '1'}];
+let num_lists = lists.length;
 let tasks = [
   { 
     id: '1',
     text: 'Task 1',
-    owner: '1',
-    secret: false,
+    list: '1',
     createdAt: new Date(),
-    completed: false
+    checked: false
   }
 ];
 let num_tasks = tasks.length;
 
 let userType = new GraphQLObjectType({
   name: 'User',
-  fields: {
+  fields: () => ({
     id: { type: GraphQLString },
-    username: { type: GraphQLString }
-  }
+    username: { type: GraphQLString },
+    lists: {
+			type: new GraphQLList(listType),
+			resolve: function(user){
+				return _.filter(lists, { user: user.id });
+			}
+		}
+  })
+});
+
+let listType = new GraphQLObjectType({
+  name: 'List',
+	fields: () => ({
+    id: { type: GraphQLString },
+    name: { type: GraphQLString },
+		incompleteCount: { type: GraphQLInt }, //really? should be a query.
+    user: {
+			type: userType,
+			resolve: function(list){
+				return _.find( users, {id: list.user});
+			}
+		},
+		tasks: {
+			type: new GraphQLList(taskType),
+			resolve: function(list){
+				return _.filter(tasks, { list: list.id});
+			}
+		}
+	})
 });
 
 let taskType = new GraphQLObjectType({
@@ -37,18 +65,17 @@ let taskType = new GraphQLObjectType({
     id: { type: GraphQLString },
     text: { type: GraphQLString },
     createdAt: { type: GraphQLString },
-    owner: { 
-      type: userType, 
+    list: { 
+      type: listType, 
       resolve: function(task){
-        return _.find(users, { id: task.owner } );
+        return _.find(lists, { id: task.list } );
       }
     },
-    secret: { type: GraphQLBoolean },
-    completed: { type: GraphQLBoolean }
+    checked: { type: GraphQLBoolean }
   }
 });
     
-
+// TODO: if this grows, split out the mutations and queries into separate file
 export const Schema = new GraphQLSchema({
   query: new GraphQLObjectType({
     name: 'Query',
@@ -63,15 +90,18 @@ export const Schema = new GraphQLSchema({
          return _.find( users, { id: id });
         }
       },
-      allTasks: {
-       //TODO: need to authenticate the user here
-       type: new GraphQLList(taskType),
-       description: "Get all tasks",
-       resolve: function(){
-         return tasks;
-       }
+      list: {
+			//TODO: need to authenticate the user here
+			  type: new GraphQLList(listType),
+			  description: "Get all todo lists the user can see",
+        args: { 
+	 			  id: { type: GraphQLString }
+			  },
+			  resolve: function(){
+			  	return _.find(lists, {id: id}); //TODO: filter by what user can see
+			  }
       }
-    }
+		}
   }),
   mutation: new GraphQLObjectType({
     name: 'RootMutationType',
