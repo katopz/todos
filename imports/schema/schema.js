@@ -2,6 +2,7 @@ import {
   GraphQLObjectType,
   GraphQLSchema,
   GraphQLInt,
+  GraphQLID,
   GraphQLString,
   GraphQLBoolean,
   GraphQLList
@@ -9,30 +10,29 @@ import {
 
 import _ from 'lodash';
 
-let users = [{id: '1', username: 'alice'}];
-let num_users = users.length;
-let lists = [{id: '1', name: 'list 1', incompleteCount: 1, user: '1'}];
-let num_lists = lists.length;
-let tasks = [
-  { 
-    id: '1',
-    text: 'Task 1',
-    list: '1',
-    createdAt: new Date(),
-    checked: false
-  }
-];
-let num_tasks = tasks.length;
+import { Lists } from '../api/lists/lists.js';
+import { Todos } from '../api/todos/todos.js';
+
+let Fiber = require('fibers');
 
 let userType = new GraphQLObjectType({
   name: 'User',
   fields: () => ({
     id: { type: GraphQLString },
-    username: { type: GraphQLString },
+    username: { 
+      type: GraphQLString,
+      resolve: function(user){
+        if(user.username){
+          return user.username;
+        } else {
+          return user.emails[0].address;
+        }
+      }
+    },
     lists: {
 			type: new GraphQLList(listType),
 			resolve: function(user){
-				return _.filter(lists, { user: user.id });
+				return Lists.find({ userId: user._id }).fetch();
 			}
 		}
   })
@@ -41,34 +41,34 @@ let userType = new GraphQLObjectType({
 let listType = new GraphQLObjectType({
   name: 'List',
 	fields: () => ({
-    id: { type: GraphQLString },
+    _id: { type: GraphQLString },
     name: { type: GraphQLString },
 		incompleteCount: { type: GraphQLInt }, //really? should be a query.
     user: {
 			type: userType,
 			resolve: function(list){
-				return _.find( users, {id: list.user});
+				return Meteor.users.findOne( {_id: list.userId} );
 			}
 		},
-		tasks: {
-			type: new GraphQLList(taskType),
+		todos: {
+			type: new GraphQLList(todoType),
 			resolve: function(list){
-				return _.filter(tasks, { list: list.id});
+				return Todos.find( { listId: list._id} ).fetch();
 			}
 		}
 	})
 });
 
-let taskType = new GraphQLObjectType({
-  name: 'Task',
+let todoType = new GraphQLObjectType({
+  name: 'Todo',
   fields: {
-    id: { type: GraphQLString },
+    _id: { type: GraphQLString },
     text: { type: GraphQLString },
     createdAt: { type: GraphQLString },
     list: { 
       type: listType, 
-      resolve: function(task){
-        return _.find(lists, { id: task.list } );
+      resolve: function(todo){
+        return Lists.findOne( todo.listId );
       }
     },
     checked: { type: GraphQLBoolean }
@@ -87,46 +87,67 @@ export const Schema = new GraphQLSchema({
         },
         description: "Get user by Id",
         resolve: function(root, {id}) {
-         return _.find( users, { id: id });
+          return Meteor.users.findOne( id );
         }
       },
-      list: {
-			//TODO: need to authenticate the user here
-			  type: new GraphQLList(listType),
-			  description: "Get all todo lists the user can see",
+      allUsers: {
+        //TODO: need to authenticate the user here
+        type: new GraphQLList( userType ),
+        description: "Get a list of all users (just for fun)",
         args: { 
-	 			  id: { type: GraphQLString }
-			  },
-			  resolve: function(){
-			  	return _.find(lists, {id: id}); //TODO: filter by what user can see
-			  }
+          id: { type: GraphQLString }
+        },
+        resolve: function(){
+           return Meteor.users.find({}).fetch(); //TODO: filter by what user can see
+         }
+      },
+      list: {
+        //TODO: need to authenticate the user here
+        type: listType,
+        description: "Get a specific todo list",
+        args: { 
+          id: { type: GraphQLString }
+        },
+        resolve: function(root, {id}){
+           return Lists.findOne(id); //TODO: filter by what user can see
+         }
+      },
+      allLists: {
+        //TODO: need to authenticate the user here
+        type: new GraphQLList(listType),
+        description: "Get all todo lists the user can see",
+        resolve: function(root){
+          return Lists.find().fetch();
+        }
       }
-		}
+    }
   }),
   mutation: new GraphQLObjectType({
     name: 'RootMutationType',
     fields: {
-     addTask: {
-      type: new GraphQLList(taskType),
-      args: {
-        text: { type: GraphQLString },
-        owner: { type: GraphQLString },
-        secret: { type: GraphQLBoolean}
-      },
-      resolve: (root, {text, owner, secret} ) => {
-				//issue #1: need to do your own schema validation here. That's no fun. Would be nice if GraphQL did it.
-				let task = {
-					id: ++num_tasks,
-					text: text,
-					owner: owner,
-					secret: secret,
-					createdAt: new Date(),
-					completed: false
-				};
-        tasks.push( task );
-        return tasks;
+      addTodo: {
+        type: todoType,
+        args: {
+          text: { type: GraphQLString },
+          listId: { type: GraphQLID },
+        },
+        resolve: (root, {text, listId} ) => {
+          //issue #1: need to do your own schema validation here. That's no fun. Would be nice if GraphQL did it.
+            return new Promise((resolve, something) => {
+              let todo = {
+                text: text,
+                listId: listId,
+                createdAt: new Date(),
+                checked: false
+              };
+              Fiber( function(){
+                let newId = Todos.insert( todo );
+                todo = Todos.findOne( { _id: newId } );
+                resolve(todo);
+              }).run();
+            });
+        }
       }
-     }
     }
- })
+  })
 });
