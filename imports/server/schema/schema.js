@@ -41,7 +41,20 @@ let listType = new GraphQLObjectType({
 	fields: () => ({
     id: { type: GraphQLString },
     name: { type: GraphQLString },
-		incomplete_count: { type: GraphQLInt }, //really? should be a query.
+		incomplete_count: { 
+      type: GraphQLInt,
+      resolve: (list) => {
+        console.log(list.id);
+        return knex('todos')
+          .where({list_id: list.id, checked: false})
+          .count('* as num')
+          .then( 
+            (res) => { 
+              return res[0]['num']
+            }
+          );
+      }
+    }, //really? should be a query.
     created_at: { type: GraphQLString },
     user: {
 			type: userType,
@@ -156,10 +169,9 @@ export const Schema = new GraphQLSchema({
                 .from("todos")
                 .where({ id: res[0] })
                 .limit(1)
-                .then( (res) => {
-                  return res[0];
-                })
-
+          })
+          .then( (res) => {
+            return res[0];
           });
         }
       },
@@ -184,9 +196,9 @@ export const Schema = new GraphQLSchema({
             return knex('todos')
             .where({id: id})
             .limit(1)
-            .then((res)=>{
-              return res[0]
-            })
+          })
+          .then((res)=>{
+            return res[0]
           });
         },
       },
@@ -218,9 +230,9 @@ export const Schema = new GraphQLSchema({
                 .from("lists")
                 .where({ id: res[0] })
                 .limit(1)
-                .then( (res) => {
-                  return res[0];
-                });
+            })
+            .then( (res) => {
+              return res[0];
             });
         }
       },
@@ -245,10 +257,10 @@ export const Schema = new GraphQLSchema({
             return knex('lists')
             .where({id: id})
             .limit(1)
-            .then((res)=>{
-              return res[0]
-            })
-          });
+          })
+          .then((res)=>{
+            return res[0]
+          })
         },
       },
 
