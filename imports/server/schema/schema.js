@@ -28,20 +28,20 @@ let userType = new GraphQLObjectType({
       }
     },
     lists: {
-			type: new GraphQLList(listType),
-			resolve: function(user){
-				return knex.select("*").from("lists").where({user_id: user.id});
-			}
-		}
+      type: new GraphQLList(listType),
+      resolve: function(user){
+        return knex.select("*").from("lists").where({user_id: user.id});
+      }
+    }
   })
 });
 
 let listType = new GraphQLObjectType({
   name: 'List',
-	fields: () => ({
+  fields: () => ({
     id: { type: GraphQLString },
     name: { type: GraphQLString },
-		incomplete_count: { 
+    incomplete_count: { 
       type: GraphQLInt,
       resolve: (list) => {
         console.log(list.id);
@@ -57,23 +57,23 @@ let listType = new GraphQLObjectType({
     }, //really? should be a query.
     created_at: { type: GraphQLString },
     user: {
-			type: userType,
-			resolve: function(list){
+      type: userType,
+      resolve: function(list){
         console.log("user id: %s", list.user_id );
-				return knex.select("*")
+        return knex.select("*")
                 .from("users")
                 .where({id: list.user_id})
                 .limit(1)
                 .then((res)=>{ return res[0]});
-			}
-		},
-		todos: {
-			type: new GraphQLList(todoType),
-			resolve: function(list){
-				return knex.select("*").from("todos").where({ list_id: list.id});
-			}
-		}
-	})
+      }
+    },
+    todos: {
+      type: new GraphQLList(todoType),
+      resolve: function(list){
+        return knex.select("*").from("todos").where({ list_id: list.id});
+      }
+    }
+  })
 });
 
 let todoType = new GraphQLObjectType({
