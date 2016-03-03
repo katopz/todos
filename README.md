@@ -1,16 +1,16 @@
-This is a Todos example app built using Meteor 1.3 + React, using ES2015 modules for file organization and NPM for managing React-related dependencies. The server side also follows the principles described in the Meteor Guide.
+This is a Todos example app built using GraphQL, React and Redux using ES2015 modules for file organization.
 
-### Running the app
+### Running the server
 
 ``` bash
 npm install
-meteor
+node server/index.js
 ```
 
-### Scripts
+### Bundling + serving the client
 
-To lint:
+Coming soon ...
 
 ``` bash
-npm run lint
+npm do something ...
 ```
