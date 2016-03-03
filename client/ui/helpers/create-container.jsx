@@ -18,17 +18,17 @@ export function createContainer(options = {}, Component) {
     pure = true
   } = options;
 
-  const mixins = [ReactMeteorData];
+  const mixins = [];
   if (pure) {
     mixins.push(PureRenderMixin);
   }
 
   /* eslint-disable react/prefer-es6-class */
   return React.createClass({
-    displayName: 'MeteorDataContainer',
+    displayName: 'DataContainer',
     mixins,
     getMeteorData() {
-      return getMeteorData(this.props);
+      return [];
     },
     render() {
       return <Component {...this.props} {...this.data}/>;
