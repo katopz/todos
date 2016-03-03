@@ -16,7 +16,7 @@ export default class ListList extends React.Component {
   }
 
   render() {
-    const { lists } = this.props;
+    const lists  = [];//this.props;
     return (
       <div className="list-todos">
         <a className="link-list-new" onClick={this.createNewList.bind(this)}>

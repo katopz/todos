@@ -35,8 +35,8 @@ module.exports = {
         }
       },
       {
-        test: /\.css$/,
-        loader: 'style!css?modules!postcss'
+        test: /\.less$/,
+        loader: 'style!css!less?modules!postcss'
       }
     ]
   },
