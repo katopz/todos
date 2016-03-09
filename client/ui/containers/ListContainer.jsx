@@ -1,16 +1,27 @@
 //import { Lists } from '../../api/lists/lists.js';
-import { createContainer } from '../helpers/create-container.jsx';
 import ListPage from '../pages/ListPage.jsx';
+import { compose } from 'react-komposer';
+import { Lokka } from 'lokka';
+import { Transport } from 'lokka-transport-http';
+import { ApolloClient } from '../helpers/ApolloClient.js';
 
-export default createContainer(({ params: { id }}) => {
-  const todosHandle = Meteor.subscribe('Todos.inList', id);
-  const loading = !todosHandle.ready();
-  const list = Lists.findOne(id);
-  const listExists = !loading && !!list;
-  return {
-    loading,
-    list,
-    listExists,
-    todos: listExists ? list.todos().fetch() : []
-  };
-}, ListPage);
+let client = new ApolloClient('http://localhost:3000/graphql');
+
+
+let ListContainer = client.createContainer({
+  defaultVars: { listExists: true, loading: false },
+  query: (props) => { return `query {
+     list(id: ${props.params.id}){
+       todos{
+        id,
+        text
+        checked
+       }
+     }
+   }`
+  },
+  component: ListPage,
+  pollingInterval: 0
+});
+
+export default ListContainer;

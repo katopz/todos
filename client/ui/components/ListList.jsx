@@ -16,7 +16,9 @@ export default class ListList extends React.Component {
   }
 
   render() {
-    const lists  = [];//this.props;
+    const lists = this.props.lists;
+    console.log('lists lists lists');
+    console.log(lists);
     return (
       <div className="list-todos">
         <a className="link-list-new" onClick={this.createNewList.bind(this)}>
@@ -25,8 +27,8 @@ export default class ListList extends React.Component {
         </a>
         {lists.map(list => (
           <Link
-            to={`/lists/${ list._id }`}
-            key={list._id}
+            to={`/lists/${ list.id }`}
+            key={list.id}
             title={list.name}
             className="list-todo"
             activeClassName="active">

@@ -12,18 +12,20 @@ export default class App extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
-      menuOpen: false,
+      menuOpen: false, //XXX what menu??
       showConnectionIssue: false
     };
   }
 
+  // commented out as long as we have no global store
+  /*
   componentWillReceiveProps({ loading, children }) {
     // redirect / to a list once lists are ready
     if (!loading && !children) {
-      const list = Lists.findOne();
+      const list = ;
       this.context.router.replace(`/lists/${ list._id }`);
     }
-  }
+  }*/
 
   componentDidMount() {
     setTimeout(() => {
@@ -32,8 +34,8 @@ export default class App extends React.Component {
     }, CONNECTION_ISSUE_TIMEOUT);
   }
 
-  toggleMenu(menuOpen = !Session.get('menuOpen')) {
-    Session.set({ menuOpen });
+  toggleMenu(menuOpen = !this.state.menuOpen) {
+    this.setState({ menuOpen: menuOpen });
   }
 
   logout() {
@@ -48,17 +50,19 @@ export default class App extends React.Component {
   }
 
   render() {
-    const { showConnectionIssue } = this.state;
+    const { menuOpen, showConnectionIssue } = this.state;
     const {
       user,
       connected,
       loading,
-      lists,
-      menuOpen,
+      data,
       children,
       location
     } = this.props;
 
+    const lists = data.allLists;
+
+    //this is probably broken. It uses session, right?
     const closeMenu = this.toggleMenu.bind(this, false);
 
     // clone route components with keys so that they can
@@ -96,7 +100,7 @@ App.propTypes = {
   user: React.PropTypes.object,      // current meteor user
   connected: React.PropTypes.bool,   // server connection status
   loading: React.PropTypes.bool,     // subscription status
-  menuOpen: React.PropTypes.bool,    // is side menu open?
+  //menuOpen: React.PropTypes.bool,    // is side menu open?
   lists: React.PropTypes.array,      // all lists visible to the current user
   children: React.PropTypes.element, // matched child route component
   location: React.PropTypes.object   // current router location

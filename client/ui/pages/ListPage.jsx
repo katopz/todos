@@ -19,7 +19,9 @@ export default class ListPage extends React.Component {
   }
 
   render() {
-    const { list, listExists, loading, todos } = this.props;
+    const { data, listExists, loading } = this.props;
+    const { list } = data
+    const { todos } = list
     const { editingTodo } = this.state;
 
     if (!listExists) {
@@ -33,8 +35,8 @@ export default class ListPage extends React.Component {
       : todos.map(todo => (
           <TodoItem
             todo={todo}
-            key={todo._id}
-            editing={todo._id === editingTodo}
+            key={todo.id}
+            editing={todo.id === editingTodo}
             onEditingChange={this.onEditingChange.bind(this)}/>
         ));
 

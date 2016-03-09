@@ -12,7 +12,8 @@ import {
 export default class TodoItem extends React.Component {
   constructor(props) {
     super(props);
-    this.throttledUpdate = _.throttle(value => {
+    //don't update right now
+    /*this.throttledUpdate = _.throttle(value => {
       if (value) {
         updateText.call({
           todoId: this.props.todo._id,
@@ -21,7 +22,7 @@ export default class TodoItem extends React.Component {
           err && alert(err.error);
         });
       }
-    }, 300);
+    }, 300);*/
   }
 
   setTodoCheckStatus(event) {

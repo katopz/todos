@@ -1,18 +1,26 @@
 //import { Lists } from '../../api/lists/lists.js';
-import { createContainer } from '../helpers/create-container.jsx';
+//import { createContainer } from '../helpers/create-container.jsx';
 import App from '../layouts/App.jsx';
+import { ApolloClient } from '../helpers/ApolloClient.js';
 
-export default createContainer(() => {
-  const publicHandle = Meteor.subscribe('Lists.public');
-  const privateHandle = Meteor.subscribe('Lists.private');
-  return {
-    user: Meteor.user(),
-    loading: !(publicHandle.ready() && privateHandle.ready()),
-    connected: Meteor.status().connected,
-    menuOpen: Session.get('menuOpen'),
-    lists: Lists.find({$or: [
-      {userId: {$exists: false}},
-      {userId: Meteor.userId()}
-    ]}).fetch()
-  };
-}, App);
+let client = new ApolloClient('http://localhost:3000/graphql');
+//XXX I'm defining the client multiple times, but it should be defined only once
+
+
+let AppContainer = client.createContainer({
+  defaultVars: { connected: true, loading: false, user: { emails: [ {address: 'uhu@aha.com'}]} },
+  query: (props) => { return `query
+    {
+        allLists{
+              id
+            name
+            user_id
+            incomplete_count
+          }
+    }
+  `},
+  component: App,
+  pollingInterval: 0
+});
+
+export default AppContainer;
