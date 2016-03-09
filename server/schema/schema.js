@@ -37,6 +37,7 @@ let listType = new GraphQLObjectType({
       }
     }, //really? should be a query.
     created_at: { type: GraphQLString },
+    user_id: { type: GraphQLID },
     user: {
       type: userType,
       resolve: function(list){
@@ -112,7 +113,17 @@ export const Schema = new GraphQLSchema({
         resolve: function(root){
           return DB.Lists.all();
         }
-      }
+      },
+      todos: {
+        type: new GraphQLList(todoType),
+        description: "Get all todos for one list",
+        args: {
+          list_id: { type: GraphQLID, description: "The list id" }
+        },
+        resolve: function( root, {list_id} ){
+          return DB.Lists.get_todos(list_id);
+        }
+      },
     }
   }),
   mutation: new GraphQLObjectType({
