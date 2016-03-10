@@ -21,6 +21,13 @@ let userType = new GraphQLObjectType({
       resolve: function(user){
         return DB.Users.get_lists(user.id);
       }
+    },
+    password_hash: {
+      //XXX this is just here so I can check it from GraphiQL. Not really a great idea.
+      type: GraphQLString,
+      resolve: function(user){
+        return DB.Users.get_password_hash(user.id);
+      }
     }
   })
 });
@@ -77,9 +84,10 @@ export const Schema = new GraphQLSchema({
       user: {
         type: userType,
         args: {
-          id: { type: GraphQLID }
+          id: { type: GraphQLID },
+          token: { type: GraphQLString }
         },
-        description: "Get user by Id",
+        description: "Get user by Id - if you have the right token",
         resolve: function(root, {id}) {
           return DB.Users.get(id);
         }
@@ -164,6 +172,72 @@ export const Schema = new GraphQLSchema({
         },
         resolve: (root, {id}) => {
           return DB.Todos.delete(id);
+        }
+      },
+
+      createUser:
+      {
+        type: userType,
+        args: {
+          username: {type: GraphQLString},
+          password: {type: GraphQLString}
+        },
+        resolve: (root, {username, password}) => {
+          return DB.Users.createWithPassword(username, password).then( (user_id) => {
+            console.log('getting',user_id);
+            return DB.Users.get( user_id );
+          });
+        }
+      },
+
+      getSessionToken:
+      {
+        type: GraphQLString,
+        args: {
+          username: {type: GraphQLString},
+          password: {type: GraphQLString}
+        },
+        resolve: (root, {username, password}) => {
+          return DB.Users.getSessionToken(username, password);
+        }
+      },
+
+      //XXX: maybe return a boolean?
+      logoutSession:
+      {
+        type: GraphQLInt,
+        args: {
+          token: { type: GraphQLString }
+        },
+        resolve: ( root, {token}) => {
+          return DB.Users.deleteToken(token);
+        }
+      },
+
+      logoutAllSessions:
+      {
+        type: GraphQLInt,
+        args: {
+          token: { type: GraphQLString }
+        },
+        resolve: ( root, {token}) => {
+          return DB.Users.getUserIdForToken(token)
+            .then( (user_id) => {
+              return DB.Users.logoutAllSessionsForUser(user_id); 
+            });
+        }
+      },
+
+
+      //not a mutation!
+      checkSessionToken:
+      {
+        type: GraphQLID,
+        args: {
+          token: { type: GraphQLString }
+        },
+        resolve: ( root, {token}) => {
+          return DB.Users.getUserIdForToken(token);
         }
       },
 

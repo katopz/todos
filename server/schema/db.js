@@ -1,3 +1,6 @@
+import { hashSync, compareSync } from 'bcryptjs';
+import uuid from 'node-uuid';
+
 var knex = require('knex')({
   client: 'sqlite3',
   connection: {
@@ -5,6 +8,16 @@ var knex = require('knex')({
   },
   debug: true
 });
+
+
+let returnFirstRow = (res) => {
+  console.log('firstrow', res );
+  return res[0];
+};
+
+let returnFirstRowValue = (key) => {
+  return (res) => { return returnFirstRow(res)[key] };
+};
 
 export const DB = {
 
@@ -17,7 +30,7 @@ export const DB = {
        return knex.select("*")
         .from("lists")
         .where({id: list_id}).limit(1)
-        .then((res)=>{ return res[0]}); //TODO: filter by what user can see
+        .then(returnFirstRow); //TODO: filter by what user can see
     },
 
     get_incomplete_count(list_id) {
@@ -25,12 +38,7 @@ export const DB = {
       return knex('todos')
         .where({list_id: list_id, checked: false})
         .count('* as num')
-        .then( 
-          (res) => { 
-            console.log(res);
-            return res[0]['num']
-          }
-        );
+        .then( returnFirstRowValue('num') ); // Not really a great idea.
     },
 
     get_todos(list_id){
@@ -71,7 +79,7 @@ export const DB = {
         .from("users")
         .where({id: user_id})
         .limit(1)
-        .then((res)=>{ return res[0]});
+        .then(returnFirstRow);
     },
 
     all(){
@@ -80,6 +88,119 @@ export const DB = {
 
     get_lists(user_id){
       return knex.select("*").from("lists").where({user_id: user_id});
+    },
+
+    get_password_hash(user_id){
+      return knex.select("value")
+        .from("users_services")
+        .where({user_id: user_id, service_name: 'password'})
+        .then( returnFirstRowValue('value') );
+    },
+
+    getSessionToken( username, password ){
+
+      let getUserAndHash = knex("users")
+        .join("users_services", "users.id", "=", "users_services.user_id")
+        .select("users_services.value as hash", "users.id as user_id")
+        .where({
+          "users.username": username, 
+          "users_services.service_name":"password",
+          "users_services.key":"bcrypt"
+      }).then( returnFirstRow );
+      
+      let checkPassword = getUserAndHash.then( (user_and_hash) => {
+          console.log('before compare',user_and_hash);
+          console.log('pass', password);
+          let ok = compareSync(password, user_and_hash['hash']);
+          if(!ok){
+            throw new Error("login failed");
+          }
+          return user_and_hash; //just pass it on
+      });
+      
+      let createToken = checkPassword.then( (user_and_hash) => {
+          //XXX even though UUID v4 should be unique, we should still make sure it actually is.
+          var token = uuid.v4();
+          console.log('token',token);
+          return knex("users_services")
+          .insert({
+            "user_id": user_and_hash['user_id'],
+            "service_name": "sessions",
+            "key": "token",
+            "value": token,
+          }).then( () => {
+            //XXX this feels wrong...
+            return token;
+          });
+      });
+      
+      return createToken.then( (token) => {
+        console.log('done token', token);
+        return token;
+      });
+    },
+
+    getUserIdForToken( token ){
+      return knex("users_services")
+        .select("user_id")
+        .where({
+          "service_name": "sessions",
+          "key": "token",
+          "value": token
+        })
+      .then( returnFirstRowValue("user_id") )
+      .catch( () => { throw new Error("invalid token") });
+    },
+
+    deleteToken( token ){
+      return knex("users_services")
+        .where({
+          "service_name": "sessions",
+          "key": "token",
+          "value": token
+        }).del()
+      .catch( () => { throw new Error("invalid token") });
+    },
+
+    logoutAllSessionsForUser( user_id ){
+      return knex("users_services")
+        .where({
+          "service_name": "sessions",
+          "key": "token",
+          "user_id": user_id
+        }).del()
+      .catch( () => { throw new Error("invalid user_id") });
+    },
+
+    createWithPassword( username, password ){
+      //XXX: put this in a transaction, please.
+      return knex("users")
+        .select("id")
+        .where({ username: username })
+        .limit(1)
+        .then( (res) => {
+          if(res.length > 0){
+            console.log(res);
+            throw new Error("Username exists already");
+          }
+        })
+        .then( (res) => {
+          return knex("users")
+          .insert({username: username});
+        })
+        .then( (id_inserted) => {
+          console.log('userid',id_inserted[0]);
+          return knex("users_services")
+          .insert({
+            user_id: id_inserted[0],
+            service_name: "password",
+            key: "bcrypt",
+            value: hashSync(password,10)
+          }).then( () => {
+            return id_inserted[0];
+          });
+        });
+
     }
   },
 
@@ -90,7 +211,7 @@ export const DB = {
         .from("todos")
         .where({id: todo_id})
         .limit(1)
-        .then((res)=>{ return res[0]});
+        .then( returnFirstRow );
     },
 
     create(text, list_id){
