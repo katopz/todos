@@ -6,7 +6,8 @@ import {
   GraphQLString,
   GraphQLBoolean,
   GraphQLList,
-  GraphQLNonNull
+  GraphQLNonNull,
+  GraphQLError
 } from 'graphql';
 
 import { DB } from './db.js';
@@ -198,6 +199,7 @@ export const Schema = new GraphQLSchema({
           password: {type: GraphQLString}
         },
         resolve: (root, {username, password}) => {
+          console.log('USER', root.auth.user);
           return DB.Users.getSessionToken(username, password);
         }
       },
@@ -229,7 +231,7 @@ export const Schema = new GraphQLSchema({
       },
 
 
-      //not a mutation!
+      //not actually a mutation!
       checkSessionToken:
       {
         type: GraphQLID,
@@ -237,7 +239,10 @@ export const Schema = new GraphQLSchema({
           token: { type: GraphQLString }
         },
         resolve: ( root, {token}) => {
-          return DB.Users.getUserIdForToken(token);
+          let userId = DB.Users.getUserIdForToken(token).then( (userId) => {
+            root.auth.userId = userId;
+          });
+          return userId;
         }
       },
 
@@ -250,6 +255,9 @@ export const Schema = new GraphQLSchema({
           user_id: { type: GraphQLID }
         },
         resolve: (root, {name, user_id}) => {
+          if( user_id && user_id != root.auth.user.id ){
+            return new GraphQLError(`not authorized. You are ${root.auth.user.id}`);
+          }
           return DB.Lists.create(name, user_id).then( (res) => {
             return DB.Lists.get( res[0] );
           });

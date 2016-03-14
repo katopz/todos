@@ -97,8 +97,7 @@ export const DB = {
         .then( returnFirstRowValue('value') );
     },
 
-    getSessionToken( username, password ){
-
+    checkPassword( username, password){
       let getUserAndHash = knex("users")
         .join("users_services", "users.id", "=", "users_services.user_id")
         .select("users_services.value as hash", "users.id as user_id")
@@ -108,23 +107,42 @@ export const DB = {
           "users_services.key":"bcrypt"
       }).then( returnFirstRow );
       
-      let checkPassword = getUserAndHash.then( (user_and_hash) => {
-          console.log('before compare',user_and_hash);
-          console.log('pass', password);
-          let ok = compareSync(password, user_and_hash['hash']);
-          if(!ok){
-            throw new Error("login failed");
-          }
-          return user_and_hash; //just pass it on
+      return  getUserAndHash.then( (user_and_hash) => {
+          //XXX don't do this sync. use async method
+          return compareSync(password, user_and_hash['hash']);
+      }).catch( (err) => {
+        return false; 
       });
-      
-      let createToken = checkPassword.then( (user_and_hash) => {
-          //XXX even though UUID v4 should be unique, we should still make sure it actually is.
+    },
+
+
+    getUserByUsername( username ){
+     return knex('users')
+       .select('*')
+       .where( { username: username })
+       .then( returnFirstRow );
+    },
+
+
+    getSessionToken( username, password ){
+      let getUser = DB.Users.checkPassword(username, password)
+                  .then( (is_login_valid) => {
+                    if( is_login_valid ){
+                      return DB.Users.getUserByUsername( username );
+                    } else {
+                      //XXX Internal errors should be handled differently
+                      throw new Error('invalid username or password');
+                    }
+                  });
+
+      let createToken = getUser.then( (user) => {
+          //XXX even though UUID v4 should be unique, we might still want to make sure it actually is
+          console.log('user is', user);
           var token = uuid.v4();
           console.log('token',token);
           return knex("users_services")
           .insert({
-            "user_id": user_and_hash['user_id'],
+            "user_id": user['id'],
             "service_name": "sessions",
             "key": "token",
             "value": token,
