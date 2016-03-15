@@ -5,6 +5,7 @@ import UserMenu from '../components/UserMenu.jsx';
 import ListList from '../components/ListList.jsx';
 import ConnectionNotification from '../components/ConnectionNotification.jsx';
 import Loading from '../components/Loading.jsx';
+import { Auth } from '../helpers/auth.js';
 
 const CONNECTION_ISSUE_TIMEOUT = 5000;
 
@@ -39,20 +40,20 @@ export default class App extends React.Component {
   }
 
   logout() {
-    Meteor.logout();
+    Auth.logout(); //umm... what if this fails?
 
     // if we are on a private list, we'll need to go to a public one
-    const list = Lists.findOne(this.props.params.id);
+    //XXX I'll do this later, maybe...
+    /*const list = Lists.findOne(this.props.params.id);
     if (list.userId) {
       const publicList = Lists.findOne({ userId: { $exists: false }});
       this.context.router.push(`/lists/${ publicList._id }`);
-    }
+    }*/
   }
 
   render() {
     const { menuOpen, showConnectionIssue } = this.state;
     const {
-      user,
       connected,
       loading,
       data,
@@ -61,6 +62,7 @@ export default class App extends React.Component {
     } = this.props;
 
     const lists = data.allLists;
+    const user = data.currentUser;
 
     //this is probably broken. It uses session, right?
     const closeMenu = this.toggleMenu.bind(this, false);

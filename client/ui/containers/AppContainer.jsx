@@ -8,7 +8,7 @@ let client = new ApolloClient('http://localhost:3000/graphql');
 
 
 let AppContainer = client.createContainer({
-  defaultVars: { connected: true, loading: false, user: { emails: [ {address: 'uhu@aha.com'}]} },
+  defaultVars: { connected: true, loading: false, user: null },
   query: (props) => { return `query
     {
         allLists{
@@ -16,7 +16,11 @@ let AppContainer = client.createContainer({
             name
             user_id
             incomplete_count
-          }
+          },
+        currentUser{
+          id
+          username
+        }
     }
   `},
   component: App,

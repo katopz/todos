@@ -12,6 +12,7 @@
     "express-graphql": "^0.4.9",
     "fibers": "^1.0.10",
     "graphql": "^0.4.18",
+    "jquery": "^2.2.1",
     "knex": "^0.10.0",
     "lodash": "^4.5.1",
     "lokka": "^1.6.1",

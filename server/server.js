@@ -24,27 +24,40 @@ app.use(passport.session());
 app.use('/graphql', 
   (req, res, next) => {
     if(req.isAuthenticated()){
+      console.log('authenticated as ', req.user.id);
+      console.log( JSON.stringify(req.session) );
       return next();
     } else {
-      res.send(401);
-      return;
+      console.log('unauthorized, but will let through');
+      console.log( JSON.stringify(req.session) );
+      return next();
     }
   },
   graphqlHTTP( (req) => ({ 
     schema: Schema,
     graphiql: true,
-    rootValue: { auth: { userId: null, user: req.user } }
+    rootValue: { auth: { userId: req.user && req.user.id, user: req.user } }
   }))
 );
 
 
 app.use( bodyParser.urlencoded({ extended: true }) );
-app.post('/login', passport.authenticate('local', {
-  successRedirect: '/',
-  failuerRedirect: '/',
-  failureFlash: true
-}) );
+app.post('/login', (req, res, next) => {
+  passport.authenticate('local', (err, user, info) => {
+    if(user){
+      req.logIn(user, err => {console.error(err);});
+      res.send(JSON.stringify(user));
+    } else {
+      res.send(401);
+    }
+  })(req, res, next);
+  next();
+});
 
+app.post('/logout', function(req, res){
+  req.logout();
+  res.send(200);
+});
 
 var proxyMiddleware = require('http-proxy-middleware');
 var proxy = proxyMiddleware('/', {

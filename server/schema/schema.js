@@ -93,6 +93,17 @@ export const Schema = new GraphQLSchema({
           return DB.Users.get(id);
         }
       },
+      currentUser: {
+        type: userType,
+        description: "Get info of currently logged in user",
+        resolve: function(root) {
+          if( root.auth.userId ){
+            return DB.Users.get(root.auth.userId);
+          } else {
+            return null;
+          }
+        }
+      },
       allUsers: {
         //TODO: need to authenticate the user here
         type: new GraphQLList( userType ),
@@ -120,7 +131,7 @@ export const Schema = new GraphQLSchema({
         type: new GraphQLList(listType),
         description: "Get all todo lists the user can see",
         resolve: function(root){
-          return DB.Lists.all();
+          return DB.Lists.all(root.auth.userId);
         }
       },
       todos: {
@@ -255,8 +266,8 @@ export const Schema = new GraphQLSchema({
           user_id: { type: GraphQLID }
         },
         resolve: (root, {name, user_id}) => {
-          if( user_id && user_id != root.auth.user.id ){
-            return new GraphQLError(`not authorized. You are ${root.auth.user.id}`);
+          if( user_id && user_id != root.auth.userId ){
+            return new GraphQLError(`not authorized. You are ${root.auth.userId}`);
           }
           return DB.Lists.create(name, user_id).then( (res) => {
             return DB.Lists.get( res[0] );

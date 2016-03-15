@@ -22,8 +22,12 @@ let returnFirstRowValue = (key) => {
 export const DB = {
 
   Lists: {
-    all(){
-      return knex.select('*').from('lists');
+    all(userId){
+      //if userId is null, the list is public
+      return knex('lists')
+        .select('*')
+        .whereNull('user_id')
+        .orWhere({ user_id: userId});
     },
 
     get(list_id){

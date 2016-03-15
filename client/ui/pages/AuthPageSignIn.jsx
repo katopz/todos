@@ -2,6 +2,8 @@ import React from 'react';
 import AuthPage from './AuthPage.jsx';
 import { Link } from 'react-router';
 
+import { Auth } from '../helpers/auth.js';
+
 export default class SignInPage extends React.Component {
   constructor(props) {
     super(props);
@@ -26,7 +28,8 @@ export default class SignInPage extends React.Component {
       return;
     }
 
-    Meteor.loginWithPassword(email, password, err => {
+    //Meteor.loginWithPassword(email, password, err => {
+    Auth.login( email, password, err => {
       if (err) {
         this.setState({
           errors: { 'none': err.reason }
