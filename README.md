@@ -1,16 +1,19 @@
 This is a Todos example app built using GraphQL, React and Redux using ES2015 modules for file organization.
 
-### Running the server
+### Running the server (for development)
 
 ``` bash
+cd ./server
 npm install
-node server/index.js
+npm start
 ```
 
-### Bundling + serving the client
-
-Coming soon ...
+### Bundling + serving the client (for development)
 
 ``` bash
-npm do something ...
+cd ./client
+npm install
+npm start
 ```
+
+The todos app should now be running at `http://localhost:3000`
