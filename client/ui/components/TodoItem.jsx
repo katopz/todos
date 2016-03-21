@@ -1,34 +1,34 @@
 import React from 'react';
 import classnames from 'classnames';
+import { throttle } from 'underscore';
 
-/*
-import {
-  setCheckedStatus,
-  updateText,
-  remove,
-} from '../../api/todos/methods.js';
-*/
+
+import api from '../../api/todos.js';
+//XXX umm, why doesn't { setCheckedStatus } work???
+
+console.log('setCheckedStatus', api);
+
 
 export default class TodoItem extends React.Component {
   constructor(props) {
     super(props);
     //don't update right now
-    /*this.throttledUpdate = _.throttle(value => {
+    this.throttledUpdate = throttle(value => {
       if (value) {
-        updateText.call({
-          todoId: this.props.todo._id,
+        api.updateText({
+          todoId: this.props.todo.id,
           newText: value
         }, (err) => {
           err && alert(err.error);
         });
       }
-    }, 300);*/
+    }, 300);
   }
 
   setTodoCheckStatus(event) {
-    setCheckedStatus.call({
-      todoId: this.props.todo._id,
-      newCheckedStatus: event.target.checked
+    api.setCheckedStatus({
+      todoId: this.props.todo.id,
+      checked: event.target.checked
     });
   }
 
@@ -37,19 +37,19 @@ export default class TodoItem extends React.Component {
   }
 
   deleteTodo() {
-    remove.call({
-      todoId: this.props.todo._id
+    api.remove({
+      todoId: this.props.todo.id
     }, (err) => {
       err && alert(err.error);
     });
   }
 
   onFocus() {
-    this.props.onEditingChange(this.props.todo._id, true);
+    this.props.onEditingChange(this.props.todo.id, true);
   }
 
   onBlur() {
-    this.props.onEditingChange(this.props.todo._id, false);
+    this.props.onEditingChange(this.props.todo.id, false);
   }
 
   render() {

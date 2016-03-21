@@ -1,24 +1,25 @@
 import React from 'react';
 import { Link } from 'react-router';
-//import { insert } from '../../api/lists/methods.js';
+import listAPI from '../../api/lists.js';
 
 export default class ListList extends React.Component {
   createNewList() {
     const { router } = this.context;
-    const listId = insert.call((err) => {
+    const listPromise = listAPI.insert({name:'new list'},(err) => {
       if (err) {
         router.push('/');
         /* eslint-disable no-alert */
         alert('Could not create list.');
       }
     });
-    router.push(`/lists/${ listId }`);
+    listPromise.then( res => {
+      let listId = res.createList.id; 
+      router.push(`/lists/${ listId }`);
+    });
   }
 
   render() {
     const lists = this.props.lists;
-    console.log('lists lists lists');
-    console.log(lists);
     return (
       <div className="list-todos">
         <a className="link-list-new" onClick={this.createNewList.bind(this)}>

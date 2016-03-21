@@ -14,7 +14,18 @@ class ApolloClient {
     });
   }
 
+  mutation( { mutation, args } ){
 
+    // Lokka mutate doesn't allow vars. DUH!
+    console.log('mutatiing', mutation);
+    return this.connection.query( mutation, args )
+      .then( result => {
+        console.log('mutation complete',result);
+        return result;
+      });
+
+    //XXX this should cause the queries to rerun... not yet sure how.
+  }
 
   createContainer(options){
     //XXX check that requried args are present
@@ -25,33 +36,29 @@ class ApolloClient {
     //  pollingInterval (optional)
     let { defaultVars, query, component, pollingInterval = 0 } = options;
 
-    let runQuery = function( query, props, onData ){
-      console.log('running query');
+    let runQuery = function( query, props, onData, label ){
+      let newProps = Object.assign( {}, defaultVars, props );
         this.connection.query( query(props) )
         .then( result => {
-          props.data = result;
+          newProps.data = result;
           //XXX handle errors
-          console.log('ondata', result);
-          console.log('props', props);
-          onData( null, props );
+          onData( null, newProps );
         });
     }
-    console.log('this',this);
 
     const onPropsChangeFn = (props, onData) => {
       //XXX this always runs twice, find out why.
       let allProps = Object.assign( {}, defaultVars, props );
 
-      runQuery.call( this, query, allProps, onData );
+      runQuery.call( this, query, allProps, onData, component.name + ' NP' );
 
       let poller = null;
       if( pollingInterval > 0){
+        poller = setInterval( runQuery.bind(this, query, props, onData, component.name + 'P'), pollingInterval );
         console.log('polling at', pollingInterval);
-        console.error('polling not yet supported');
-        //poller = setInterval( runQuery.bind(this, query, props, onData), this.pollingInterval );
       }
 
-      return () => { console.log('clear interval'); clearInterval(poller) }; 
+      return () => { if(poller){ console.log('clear interval', poller, component.name); clearInterval(poller)} }; 
     };
 
 

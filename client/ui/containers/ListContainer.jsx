@@ -12,6 +12,9 @@ let ListContainer = client.createContainer({
   defaultVars: { listExists: true, loading: false },
   query: (props) => { return `query {
      list(id: ${props.params.id}){
+       id,
+       name,
+       user_id,
        todos{
         id,
         text

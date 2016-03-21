@@ -283,11 +283,26 @@ export const Schema = new GraphQLSchema({
           user_id: { type: GraphQLID }
         },
         resolve: (root, {id, name, user_id}) => {
+          if(user_id == 0){ user_id = null;}
           return DB.Lists.update(id, name, user_id).then( (res) => {
             return DB.Lists.get(id);
           });
         },
       },
+
+      makeListPrivate: {
+        type: GraphQLInt,
+        args: {
+          id: { type: GraphQLID }
+        },
+        resolve: (root, {id}) => {
+          if( root.auth.userId ){
+            return DB.Lists.update(id, undefined, root.auth.userId);
+          } else {
+            throw new GraphQLError('Anonymous user cannot make list private');
+          }
+        }
+     },
 
       deleteList: {
         type: GraphQLInt,

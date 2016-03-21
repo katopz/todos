@@ -7,13 +7,10 @@ import {
   makePublic,
   makePrivate,
   remove,
-} from '../../api/lists/methods.js';
-*/
-/*
-import {
-  insert,
-} from '../../api/todos/methods.js';
-*/
+} */
+import listAPI from '../../api/lists.js';
+
+import todoAPI from '../../api/todos.js';
 
 export default class ListHeader extends React.Component {
   constructor(props) {
@@ -33,8 +30,8 @@ export default class ListHeader extends React.Component {
 
   saveList() {
     this.setState({ editing: false });
-    updateName.call({
-      listId: this.props.list._id,
+    listAPI.updateName({
+      listId: this.props.list.id,
       newName: this.refs.listNameInput.value
     }, (err) => {
       /* eslint-disable no-console */
@@ -48,8 +45,8 @@ export default class ListHeader extends React.Component {
     const message = `Are you sure you want to delete the list ${list.name}?`;
 
     if (confirm(message)) {
-      remove.call({
-        listId: list._id
+      listAPI.remove({
+        listId: list.id
       }, (err) => {
         err && alert(err.error);
       });
@@ -59,12 +56,12 @@ export default class ListHeader extends React.Component {
 
   toggleListPrivacy() {
     const list = this.props.list;
-    if (list.userId) {
-      makePublic.call({ listId: list._id }, (err) => {
+    if (list.user_id) {
+      listAPI.makePublic({ listId: list.id }, (err) => {
         err && alert(err.error);
       });
     } else {
-      makePrivate.call({ listId: list._id }, (err) => {
+      listAPI.makePrivate({ listId: list.id }, (err) => {
         err && alert(err.error);
       });
     }
@@ -99,8 +96,9 @@ export default class ListHeader extends React.Component {
     event.preventDefault();
     const input = this.refs.newTodoInput;
     if (input.value.trim()) {
-      insert.call({
-        listId: this.props.list._id,
+      console.log('list id is', this.props.list);
+      todoAPI.insert({
+        listId: this.props.list.id,
         text: input.value
       }, (err) => {
         err && alert(err.error);
@@ -128,7 +126,7 @@ export default class ListHeader extends React.Component {
               defaultValue="default"
               onChange={this.onListDropdownAction.bind(this)}>
               <option disabled value="default">Select an action</option>
-              {list.userId
+              {list.user_id
                 ? <option value="public">Make Public</option>
                 : <option value="private">Make Private</option>}
               <option value="delete">Delete</option>
@@ -137,7 +135,7 @@ export default class ListHeader extends React.Component {
           </div>
           <div className="options-web">
             <a className="nav-item" onClick={this.toggleListPrivacy.bind(this)}>
-              {list.userId
+              {list.user_id
                 ? <span className="icon-lock" title="Make list public"></span>
                 : <span className="icon-unlock" title="Make list private"></span>}
             </a>

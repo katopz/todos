@@ -41,6 +41,9 @@ export default class App extends React.Component {
 
   logout() {
     Auth.logout(); //umm... what if this fails?
+    //XXX currently have to do this to refresh the view. DOH!
+    this.context.router.push('/');
+    
 
     // if we are on a private list, we'll need to go to a public one
     //XXX I'll do this later, maybe...

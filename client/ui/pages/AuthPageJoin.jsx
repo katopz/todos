@@ -1,7 +1,8 @@
 import React from 'react';
 import AuthPage from './AuthPage.jsx';
 import { Link } from 'react-router';
-//import { Accounts } from 'meteor/accounts-base';
+import usersAPI from '../../api/users.js';
+import { Auth } from '../helpers/auth.js';
 
 export default class JoinPage extends React.Component {
   constructor(props) {
@@ -31,15 +32,16 @@ export default class JoinPage extends React.Component {
       return;
     }
 
-    Accounts.createUser({
-      email,
-      password
-    }, err => {
+    usersAPI.createUser({
+      username: email,
+      password: password
+    }).then( (res, err) => {
       if (err) {
         this.setState({
           errors: { 'none': err.reason }
         });
       }
+      Auth.login(email, password); //XXX: should probably unify Auth and usersAPI
       this.context.router.push('/');
     });
   }

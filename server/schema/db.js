@@ -27,6 +27,7 @@ export const DB = {
       return knex('lists')
         .select('*')
         .whereNull('user_id')
+        .orWhere({ user_id: 0})
         .orWhere({ user_id: userId});
     },
 

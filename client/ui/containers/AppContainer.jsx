@@ -24,7 +24,7 @@ let AppContainer = client.createContainer({
     }
   `},
   component: App,
-  pollingInterval: 0
+  pollingInterval: 500
 });
 
 export default AppContainer;
