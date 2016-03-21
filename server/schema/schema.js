@@ -7,30 +7,30 @@ import {
   GraphQLBoolean,
   GraphQLList,
   GraphQLNonNull,
-  GraphQLError
+  GraphQLError,
 } from 'graphql';
 
 import { DB } from './db.js';
 
-let userType = new GraphQLObjectType({
+const userType = new GraphQLObjectType({
   name: 'User',
   fields: () => ({
     id: { type: GraphQLID },
     username: { type: GraphQLString },
     lists: {
       type: new GraphQLList(listType),
-      resolve: function(user){
+      resolve: user => {
         return DB.Users.get_lists(user.id);
-      }
+      },
     },
     password_hash: {
-      //XXX this is just here so I can check it from GraphiQL. Not really a great idea.
+      // XXX this is just here so I can check it from GraphiQL. Remove, please.
       type: GraphQLString,
-      resolve: function(user){
+      resolve: user => {
         return DB.Users.get_password_hash(user.id);
-      }
-    }
-  })
+      },
+    },
+  }),
 });
 
 let listType = new GraphQLObjectType({
@@ -38,27 +38,27 @@ let listType = new GraphQLObjectType({
   fields: () => ({
     id: { type: GraphQLString },
     name: { type: GraphQLString },
-    incomplete_count: { 
+    incomplete_count: {
       type: GraphQLInt,
       resolve: (list) => {
         return DB.Lists.get_incomplete_count(list.id);
-      }
-    }, //really? should be a query.
+      },
+    }, // really? should be a query.
     created_at: { type: GraphQLString },
     user_id: { type: GraphQLID },
     user: {
       type: userType,
-      resolve: function(list){
+      resolve: list => {
         return DB.Users.get(list.user_id);
-      }
+      },
     },
     todos: {
       type: new GraphQLList(todoType),
-      resolve: function(list){
+      resolve: list => {
         return DB.Lists.get_todos(list.id);
-      }
-    }
-  })
+      },
+    },
+  }),
 });
 
 let todoType = new GraphQLObjectType({
@@ -67,16 +67,16 @@ let todoType = new GraphQLObjectType({
     id: { type: GraphQLID },
     text: { type: GraphQLString },
     created_at: { type: GraphQLString },
-    list: { 
-      type: listType, 
-      resolve: function(todo){
+    list: {
+      type: listType,
+      resolve: todo => {
         return DB.Lists.get(todo.list_id);
-      }
+      },
     },
-    checked: { type: GraphQLBoolean }
-  }
+    checked: { type: GraphQLBoolean },
+  },
 });
-    
+
 // TODO: if this grows, split out the mutations and queries into separate file
 export const Schema = new GraphQLSchema({
   query: new GraphQLObjectType({
@@ -86,66 +86,71 @@ export const Schema = new GraphQLSchema({
         type: userType,
         args: {
           id: { type: GraphQLID },
-          token: { type: GraphQLString }
+          token: { type: GraphQLString },
         },
-        description: "Get user by Id - if you have the right token",
-        resolve: function(root, {id}) {
+        description: 'Get user by Id - if you have the right token',
+        resolve: (root, { id }) => {
           return DB.Users.get(id);
-        }
+        },
       },
+
       currentUser: {
         type: userType,
-        description: "Get info of currently logged in user",
-        resolve: function(root) {
-          if( root.auth.userId ){
+        description: 'Get info of currently logged in user',
+        resolve: root => {
+          if (root.auth.userId) {
             return DB.Users.get(root.auth.userId);
-          } else {
-            return null;
           }
-        }
-      },
-      allUsers: {
-        //TODO: need to authenticate the user here
-        type: new GraphQLList( userType ),
-        description: "Get a list of all users (just for fun)",
-        args: { 
-          id: { type: GraphQLID }
+          return null;
         },
-        resolve: function(){
+      },
+
+      allUsers: {
+        // TODO: need to authenticate the user here
+        type: new GraphQLList(userType),
+        description: 'Get a list of all users (just for fun)',
+        args: {
+          id: { type: GraphQLID },
+        },
+        resolve: () => {
           return DB.Users.all();
-        }
+        },
       },
       list: {
-        //TODO: need to authenticate the user here
+        // TODO: need to authenticate the user here
         type: listType,
-        description: "Get a specific todo list",
-        args: { 
-          id: { type: GraphQLID }
+        description: 'Get a specific todo list',
+        args: {
+          id: { type: GraphQLID },
         },
-        resolve: function(root, {id}){
+        resolve: (root, { id }) => {
           return DB.Lists.get(id);
-        }
+        },
       },
       allLists: {
-        //TODO: need to authenticate the user here
+        // TODO: need to authenticate the user here
         type: new GraphQLList(listType),
-        description: "Get all todo lists the user can see",
-        resolve: function(root){
+        description: 'Get all todo lists the user can see',
+        resolve: root => {
           return DB.Lists.all(root.auth.userId);
-        }
+        },
       },
       todos: {
         type: new GraphQLList(todoType),
-        description: "Get all todos for one list",
+        description: 'Get all todos for one list',
         args: {
-          list_id: { type: GraphQLID, description: "The list id" }
+          list_id: {
+            type: GraphQLID,
+            description: 'The list id',
+          },
         },
-        resolve: function( root, {list_id} ){
+        resolve: (root, { list_id }) => {
           return DB.Lists.get_todos(list_id);
-        }
+        },
       },
-    }
+    },
   }),
+
   mutation: new GraphQLObjectType({
     name: 'RootMutationType',
     fields: {
@@ -155,106 +160,113 @@ export const Schema = new GraphQLSchema({
           text: { type: GraphQLString },
           list_id: { type: GraphQLID },
         },
-        resolve: (root, {text, list_id} ) => {
-          return DB.Todos.create(text, list_id).then( (res) => {
-            return DB.Todos.get(res[0]);
-          });
-        }
+        resolve: (root, { text, list_id }) => {
+          return DB.Todos.create(text, list_id).then(
+            (res) => {
+              return DB.Todos.get(res[0]);
+            }
+          );
+        },
       },
 
       updateTodo: {
         type: todoType,
-        //TODO: use an input type here!
+        // TODO: use an input type here!
         args: {
           id: { type: new GraphQLNonNull(GraphQLID) },
           text: { type: GraphQLString },
-          checked: { type: GraphQLBoolean }
+          checked: { type: GraphQLBoolean },
         },
-        resolve: (root, {id, text, checked}) => {
-          return DB.Todos.update(id, text, checked).then( (res) => {
-            return DB.Todos.get(id);
-          });
+        resolve: (root, { id, text, checked }) => {
+          return DB.Todos.update(id, text, checked).then(
+            () => {
+              return DB.Todos.get(id);
+            }
+          );
         },
       },
 
       deleteTodo: {
         type: GraphQLInt,
         args: {
-          id: { type: GraphQLID }
+          id: { type: GraphQLID },
         },
-        resolve: (root, {id}) => {
+        resolve: (root, { id }) => {
           return DB.Todos.delete(id);
-        }
+        },
       },
 
       createUser:
       {
         type: userType,
         args: {
-          username: {type: GraphQLString},
-          password: {type: GraphQLString}
+          username: { type: GraphQLString },
+          password: { type: GraphQLString },
         },
-        resolve: (root, {username, password}) => {
-          return DB.Users.createWithPassword(username, password).then( (user_id) => {
-            console.log('getting',user_id);
-            return DB.Users.get( user_id );
-          });
-        }
+        resolve: (root, { username, password }) => {
+          return DB.Users.createWithPassword(username, password).then(
+            (userId) => {
+              return DB.Users.get(userId);
+            }
+          );
+        },
       },
 
       getSessionToken:
       {
         type: GraphQLString,
         args: {
-          username: {type: GraphQLString},
-          password: {type: GraphQLString}
+          username: { type: GraphQLString },
+          password: { type: GraphQLString },
         },
-        resolve: (root, {username, password}) => {
-          console.log('USER', root.auth.user);
+        resolve: (root, { username, password }) => {
           return DB.Users.getSessionToken(username, password);
-        }
+        },
       },
 
-      //XXX: maybe return a boolean?
+      // XXX: maybe return a boolean?
       logoutSession:
       {
         type: GraphQLInt,
         args: {
-          token: { type: GraphQLString }
+          token: { type: GraphQLString },
         },
-        resolve: ( root, {token}) => {
+        resolve: (root, { token }) => {
           return DB.Users.deleteToken(token);
-        }
+        },
       },
 
       logoutAllSessions:
       {
         type: GraphQLInt,
         args: {
-          token: { type: GraphQLString }
+          token: { type: GraphQLString },
         },
-        resolve: ( root, {token}) => {
+        resolve: (root, { token }) => {
           return DB.Users.getUserIdForToken(token)
-            .then( (user_id) => {
-              return DB.Users.logoutAllSessionsForUser(user_id); 
-            });
-        }
+            .then(
+              (userId) => {
+                return DB.Users.logoutAllSessionsForUser(userId);
+              }
+            );
+        },
       },
 
 
-      //not actually a mutation!
+      // not actually a mutation, just want it to be executed serially!
       checkSessionToken:
       {
         type: GraphQLID,
         args: {
-          token: { type: GraphQLString }
+          token: { type: GraphQLString },
         },
-        resolve: ( root, {token}) => {
-          let userId = DB.Users.getUserIdForToken(token).then( (userId) => {
-            root.auth.userId = userId;
-          });
-          return userId;
-        }
+        resolve: (root, { token }) => {
+          return DB.Users.getUserIdForToken(token).then(
+            (userId) => {
+              root.auth.userId = userId;
+              return userId;
+            });
+        },
       },
 
       createList:
@@ -263,16 +275,18 @@ export const Schema = new GraphQLSchema({
         args:
         {
           name: { type: new GraphQLNonNull(GraphQLString) },
-          user_id: { type: GraphQLID }
+          userId: { type: GraphQLID },
         },
-        resolve: (root, {name, user_id}) => {
-          if( user_id && user_id != root.auth.userId ){
+        resolve: (root, { name, userId }) => {
+          if (userId && userId !== root.auth.userId) {
             return new GraphQLError(`not authorized. You are ${root.auth.userId}`);
           }
-          return DB.Lists.create(name, user_id).then( (res) => {
-            return DB.Lists.get( res[0] );
-          });
-        }
+          return DB.Lists.create(name, userId).then(
+            (res) => {
+              return DB.Lists.get(res[0]);
+            }
+          );
+        },
       },
 
       updateList: {
@@ -280,39 +294,40 @@ export const Schema = new GraphQLSchema({
         args: {
           id: { type: new GraphQLNonNull(GraphQLID) },
           name: { type: GraphQLString },
-          user_id: { type: GraphQLID }
+          userId: { type: GraphQLID },
         },
-        resolve: (root, {id, name, user_id}) => {
-          if(user_id == 0){ user_id = null;}
-          return DB.Lists.update(id, name, user_id).then( (res) => {
-            return DB.Lists.get(id);
-          });
+        resolve: (root, { id, name, userId }) => {
+          const userIdValue = userId !== 0 ? userId : null;
+          return DB.Lists.update(id, name, userIdValue).then(
+            () => {
+              return DB.Lists.get(id);
+            }
+          );
         },
       },
 
       makeListPrivate: {
         type: GraphQLInt,
         args: {
-          id: { type: GraphQLID }
+          id: { type: GraphQLID },
         },
-        resolve: (root, {id}) => {
-          if( root.auth.userId ){
+        resolve: (root, { id }) => {
+          if (root.auth.userId) {
             return DB.Lists.update(id, undefined, root.auth.userId);
-          } else {
-            throw new GraphQLError('Anonymous user cannot make list private');
           }
-        }
-     },
+          throw new GraphQLError('Anonymous user cannot make list private');
+        },
+      },
 
       deleteList: {
         type: GraphQLInt,
         args: {
-          id: { type: GraphQLID }
+          id: { type: GraphQLID },
         },
-        resolve: (root, {id}) => {
+        resolve: (root, { id }) => {
           return DB.Lists.delete(id);
-        }
-      }
-    }
-  })
+        },
+      },
+    },
+  }),
 });
